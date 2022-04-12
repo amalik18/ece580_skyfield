@@ -45,7 +45,7 @@ class TrackSatellite:
                 difference = self.sat - self.loc
                 topocentric = difference.at(t)
                 alt, az, distance = topocentric.altaz()
-                ret_list.append({'time':t1, 'alt':alt, 'az':az, 'distance':distance})
+                ret_list.append({'time':t, 'alt':alt, 'az':az, 'distance':distance})
             return ret_list
         else:
             difference = self.sat - self.loc
