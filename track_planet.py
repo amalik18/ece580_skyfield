@@ -2,27 +2,24 @@
 from skyfield.api import load, wgs84, EarthSatellite
 from datetime import datetime
 
-class TrackSatellite:
-    def __init__(self, lat=0.0, lon=0.0, tle=None):
-        self.ts = load.timescale()
+class TrackPlanet:
+    def __init__(self, lat=0.0, lon=0.0, planet=None):
+        self.ts = load.timescale()        
+        self.sat = None
+        self.eph = load('de421.bsp')
+        self.earth = self.eph['earth']
         self.set_loc(lat, lon)
-        if tle != None:
-            self.load_tle(tle)
-        else:
-            self.sat = None
+        if planet != None:
+            self.set_planet(planet)
 
-    def load_tle(self, tle, name='satellite'):
-        
-        if isinstance(tle, list) and len(tle) == 2:
-            self.sat = EarthSatellite(tle[0], tle[1], name, self.ts)
-        else:
-            raise ValueError('TLE data must be a list of two strings')
+    def set_planet(self, name):
+        self.planet = self.eph[name]
 
     def set_loc(self, lat, lon):
         if isinstance(lat, float) and isinstance(lon, float):
             self.lat = lat
             self.lon = lon
-            self.loc = wgs84.latlon(float(lat),float(lon))
+            self.loc = self.earth+wgs84.latlon(float(lat),float(lon))
         else:
             raise ValueError('Lat and Lon must be floats')
 
@@ -40,13 +37,13 @@ class TrackSatellite:
             ret_list = []
             times = self.ts.linspace(t1, t2, count)
             for t in times:
-                difference = self.sat - self.loc
+                difference = self.planet - self.loc
                 topocentric = difference.at(t)
                 alt, az, distance = topocentric.altaz()
                 ret_list.append({'time':t, 'alt':alt, 'az':az, 'distance':distance})
             return ret_list
         else:
-            difference = self.sat - self.loc
+            difference = self.planet - self.loc
             topocentric = difference.at(t1)
             
             alt, az, distance = topocentric.altaz()
@@ -67,30 +64,31 @@ if __name__ == '__main__':
     t2=0
     count=10
     min_angle=None
+    planet = 'mars'
     if len(argv)>1:
-        print("Loc: %s"%argv[1])
-        lat,lon = argv[1].split(',')
+        print("Planet: %s"%argv[1])
+        planet = argv[1]
     if len(argv)>2:
-        print("Time: %s"%argv[2])
-        t1 = datetime.strptime(argv[2], '%Y/%m/%d-%H:%M:%S')
-        t1 = t1.replace(tzinfo=timezone.utc)
+        print("Loc: %s"%argv[2])
+        lat,lon = argv[2].split(',')
     if len(argv)>3:
-        print("Time 2: %s"%argv[3])
-        t2 = datetime.strptime(argv[3], '%Y/%m/%d-%H:%M:%S')
-        t2 = t2.replace(tzinfo=timezone.utc)
+        print("Time: %s"%argv[3])
+        t1 = datetime.strptime(argv[3], '%Y/%m/%d-%H:%M:%S')
+        t1 = t1.replace(tzinfo=timezone.utc)
     if len(argv)>4:
-        print("Points: %s"%argv[4])
-        count = int(argv[4])
+        print("Time 2: %s"%argv[4])
+        t2 = datetime.strptime(argv[4], '%Y/%m/%d-%H:%M:%S')
+        t2 = t2.replace(tzinfo=timezone.utc)
     if len(argv)>5:
-        print("Min Angle: %s"%argv[5])
-        min_angle = int(argv[5])
-    line1 = "1 25544U 98067A   22101.34838098  .00010998  00000+0  20034-3 0  9997"
-    line2 = "2 25544  51.6440 307.6369 0004493  11.0035 156.2993 15.50005149334810"
+        print("Points: %s"%argv[5])
+        count = int(argv[5])
+    if len(argv)>6:
+        print("Min Angle: %s"%argv[6])
+        min_angle = int(argv[6])
 
-
-    sat_track = TrackSatellite(float(lat), float(lon), [line1,line2])
-    views = sat_track.get_view(t1,t2,count)
-    filtered = sat_track.filter_for_elevation(views,min_angle)
+    planet_track = TrackPlanet(float(lat), float(lon), planet)
+    views = planet_track.get_view(t1,t2,count)
+    filtered = planet_track.filter_for_elevation(views,min_angle)
     for f in filtered: 
         print(f)
 
