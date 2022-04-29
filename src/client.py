@@ -1,5 +1,8 @@
 from skyfield.api import load, wgs84, EarthSatellite
 from datetime import datetime
+from skyfield.constants import AU_KM
+from skyfield.vectorlib import VectorFunction
+from spktype01 import SPKType01
 
 class TrackPlanet:
     def __init__(self, lat=0.0, lon=0.0, planet=None):
@@ -123,6 +126,40 @@ class Type21Object(VectorFunction):
         r, v = k.compute_type21(0, self.target, t.whole, t.tdb_fraction)
         return r / AU_KM, v / AU_KM, None, None
 
+
+class EphemeralClass(VectorFunction):
+    def __init__(self, kernel, target, type_obj):
+        self.kernel = kernel
+        self.target = target
+
+        if type_obj == "type01":
+            self.center = 10
+        else:
+            self.center = 0
+    
+    def _at(self, t):
+        k = self.kernel
+        if self.center == 10:
+            r, v = k.compute_type01(0, self.target, t.whole, t.tdb_function)
+        else:
+            r, v = k.compute_type21(0, self.target, t.whole, t.tdb_function)
+        
+        return r / AU_KM, v / AU_KM, None, None
+        
+    
+
+class Type01Object(VectorFunction):
+    def __init__(self, kernel, target):
+        self.kernel = kernel
+        self.center = 10
+        self.target = target
+
+    def _at(self, t):
+        k = self.kernel
+        print(t)
+        r, v = k.compute_type01(self.center, self.target, t.whole, t.tdb_fraction)
+        return r / AU_KM, v / AU_KM, None, None
+
 class TrackBody:
     def __init__(self, lat=0.0, lon=0.0):
         self.ts = load.timescale()        
@@ -176,18 +213,6 @@ class TrackBody:
                 o.append(v)
         return o
 
-
-class Type01Object(VectorFunction):
-    def __init__(self, kernel, target):
-        self.kernel = kernel
-        self.center = 10
-        self.target = target
-
-    def _at(self, t):
-        k = self.kernel
-        print(t)
-        r, v = k.compute_type01(self.center, self.target, t.whole, t.tdb_fraction)
-        return r / AU_KM, v / AU_KM, None, None
 
 class TrackBody:
     def __init__(self, lat=0.0, lon=0.0):

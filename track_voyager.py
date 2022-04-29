@@ -5,7 +5,6 @@ from skyfield.constants import AU_KM
 from skyfield.vectorlib import VectorFunction
 from spktype01 import SPKType01
 
-
 # class Type01Object(VectorFunction):
 #     def __init__(self, kernel, target):
 #         self.kernel = kernel

@@ -1,6 +1,6 @@
 from sys import argv
 from datetime import datetime, timezone
-from client import TrackPlanet
+from client import TrackPlanet, TrackSatellite
 import click
 
 
@@ -28,7 +28,7 @@ def get_planet_track(planet, latitude, longitude, initial_time, end_time, points
     planet_client = TrackPlanet(lat=latitude, lon=longitude, planet=planet)
     planet_views = planet_client.get_view(time_start=initial_time, time_stop=end_time, points=points)
     filtered_view = planet_client.filter_for_elevation(planet_views, angle)
-    print(*filtered_view, sep="\n")
+    return filtered_view
 
 
 
@@ -40,42 +40,23 @@ def get_planet_track(planet, latitude, longitude, initial_time, end_time, points
 @click.option('--points', '-p', required=True, default=100, type=int, show_default=True, help="Number of samples to collect.")
 @click.option('--angle', '-a', required=True, default=0, type=int, show_default=True, help="The minimum viewing angle.")
 def get_sat_track(latitude, longitude, initial_time, end_time, points, angle):
+    initial_time = datetime.strptime(initial_time, '%Y/%m/%d-%H:%M:%S').replace(tzinfo=timezone.utc)
+    end_time = datetime.strptime(end_time, '%Y/%m/%d-%H:%M:%S').replace(tzinfo=timezone.utc)
+    line1 = "1 25544U 98067A   22101.34838098  .00010998  00000+0  20034-3 0  9997"
+    line2 = "2 25544  51.6440 307.6369 0004493  11.0035 156.2993 15.50005149334810"
+    sat_client = TrackSatellite(lat=latitude, lon=longitude, tle=[line1, line2])
+    sat_views = sat_client.get_view(time_start=initial_time, time_stop=end_time, points=points)
+    filtered_view = sat_client.filter_for_elevation(sat_views, min_angle=angle)
+    return filtered_view
+
+
+
 
 
 
 @click.group()
 def main(): 
     pass
-    print(argv)
-    t2=0
-    count=10
-    min_angle=None
-    if len(argv)>1:
-        print("Loc: %s"%argv[1])
-        lat,lon = argv[1].split(',')
-    if len(argv)>2:
-        print("Time: %s"%argv[2])
-        t1 = datetime.strptime(argv[2], '%Y/%m/%d-%H:%M:%S')
-        t1 = t1.replace(tzinfo=timezone.utc)
-    if len(argv)>3:
-        print("Time 2: %s"%argv[3])
-        t2 = datetime.strptime(argv[3], '%Y/%m/%d-%H:%M:%S')
-        t2 = t2.replace(tzinfo=timezone.utc)
-    if len(argv)>4:
-        print("Points: %s"%argv[4])
-        count = int(argv[4])
-    if len(argv)>5:
-        print("Min Angle: %s"%argv[5])
-        min_angle = int(argv[5])
-    line1 = "1 25544U 98067A   22101.34838098  .00010998  00000+0  20034-3 0  9997"
-    line2 = "2 25544  51.6440 307.6369 0004493  11.0035 156.2993 15.50005149334810"
-
-
-    sat_track = TrackSatellite(float(lat), float(lon), [line1,line2])
-    views = sat_track.get_view(t1,t2,count)
-    filtered = sat_track.filter_for_elevation(views,min_angle)
-    for f in filtered: 
-        print(f)
 
 
 main.add_command(get_planet_track)
