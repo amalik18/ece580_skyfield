@@ -5,69 +5,69 @@ from skyfield.constants import AU_KM
 from skyfield.vectorlib import VectorFunction
 from spktype21 import SPKType21
 
-class Type21Object(VectorFunction):
-    def __init__(self, kernel, target):
-        self.kernel = kernel
-        self.center = 0
-        self.target = target
+# class Type21Object(VectorFunction):
+#     def __init__(self, kernel, target):
+#         self.kernel = kernel
+#         self.center = 0
+#         self.target = target
 
-    def _at(self, t):
-        k = self.kernel
-        r, v = k.compute_type21(0, self.target, t.whole, t.tdb_fraction)
-        return r / AU_KM, v / AU_KM, None, None
+#     def _at(self, t):
+#         k = self.kernel
+#         r, v = k.compute_type21(0, self.target, t.whole, t.tdb_fraction)
+#         return r / AU_KM, v / AU_KM, None, None
 
-class TrackBody:
-    def __init__(self, lat=0.0, lon=0.0):
-        self.ts = load.timescale()        
-        self.sat = None
-        self.eph = load('de421.bsp')
-        self.earth = self.eph['earth']
-        kernel = SPKType21.open('2065803.bsp')
-        self.body_eph = Type21Object(kernel, 2065803)
-        self.set_loc(lat, lon)
-        self.set_body()
+# class TrackBody:
+#     def __init__(self, lat=0.0, lon=0.0):
+#         self.ts = load.timescale()        
+#         self.sat = None
+#         self.eph = load('de421.bsp')
+#         self.earth = self.eph['earth']
+#         kernel = SPKType21.open('2065803.bsp')
+#         self.body_eph = Type21Object(kernel, 2065803)
+#         self.set_loc(lat, lon)
+#         self.set_body()
 
-    def set_body(self):
-        self.body = self.body_eph
+#     def set_body(self):
+#         self.body = self.body_eph
 
-    def set_loc(self, lat, lon):
-        if isinstance(lat, float) and isinstance(lon, float):
-            self.lat = lat
-            self.lon = lon
-            self.loc = self.earth+wgs84.latlon(float(lat),float(lon))
-        else:
-            raise ValueError('Lat and Lon must be floats')
+#     def set_loc(self, lat, lon):
+#         if isinstance(lat, float) and isinstance(lon, float):
+#             self.lat = lat
+#             self.lon = lon
+#             self.loc = self.earth+wgs84.latlon(float(lat),float(lon))
+#         else:
+#             raise ValueError('Lat and Lon must be floats')
 
-    def get_view(self, time_start, time_stop=None, points=100):
-        if isinstance(time_start, datetime):    
-            t1 = self.ts.from_datetime(time_start)
-        else:
-            raise ValueError('Time must be datetime.datetime object')
-        if time_stop != None:
-            if isinstance(time_stop, datetime):    
-                t2 = self.ts.from_datetime(time_stop)
-            else:
-                raise ValueError('Time must be datetime.datetime object')
+#     def get_view(self, time_start, time_stop=None, points=100):
+#         if isinstance(time_start, datetime):    
+#             t1 = self.ts.from_datetime(time_start)
+#         else:
+#             raise ValueError('Time must be datetime.datetime object')
+#         if time_stop != None:
+#             if isinstance(time_stop, datetime):    
+#                 t2 = self.ts.from_datetime(time_stop)
+#             else:
+#                 raise ValueError('Time must be datetime.datetime object')
             
-            ret_list = []
-            times = self.ts.linspace(t1, t2, count)
-            for t in times:
-                topocentric = self.body.at(t) - self.loc.at(t)
-                alt, az, distance = topocentric.altaz()
-                ret_list.append({'time':t, 'alt':alt, 'az':az, 'distance':distance})
-            return ret_list
-        else:
-            difference = self.body - self.loc
-            topocentric = difference.at(t1)
+#             ret_list = []
+#             times = self.ts.linspace(t1, t2, count)
+#             for t in times:
+#                 topocentric = self.body.at(t) - self.loc.at(t)
+#                 alt, az, distance = topocentric.altaz()
+#                 ret_list.append({'time':t, 'alt':alt, 'az':az, 'distance':distance})
+#             return ret_list
+#         else:
+#             difference = self.body - self.loc
+#             topocentric = difference.at(t1)
             
-            alt, az, distance = topocentric.altaz()
-            return {'time':t1, 'alt':alt, 'az':az, 'distance':distance}
-    def filter_for_elevation(self, views, min_angle):
-        o=[]
-        for v in views:
-            if v['alt'].degrees >= min_angle:
-                o.append(v)
-        return o
+#             alt, az, distance = topocentric.altaz()
+#             return {'time':t1, 'alt':alt, 'az':az, 'distance':distance}
+#     def filter_for_elevation(self, views, min_angle):
+#         o=[]
+#         for v in views:
+#             if v['alt'].degrees >= min_angle:
+#                 o.append(v)
+#         return o
             
 
 if __name__ == '__main__':
