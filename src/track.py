@@ -3,12 +3,16 @@ from client import TrackPlanet, TrackSatellite, TrackBodyT01, TrackBodyT21
 import click
 
 
+def print_views(views):
+    for v in views:
+        print("Time: %s Azimuth: %f Altitude: %f"%(v['time'].utc_iso(), v['az'].degrees, v['alt'].degrees))
+
 def validate_time(ctx, param, value):
     return value
 
 
 def validate_planet(ctx, param, value):
-    if value.lower() not in ['mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'neptune', 'uranus', "pluto"]:
+    if value.lower() not in ['mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'neptune', 'uranus', "pluto", "moon"]:
         raise click.BadParameter(f"The planet provided ({value}) is not a valid planet. Please provide a valid planet.")
     else:
         return value
@@ -38,7 +42,7 @@ def get_planet_track(planet, latitude, longitude, initial_time, end_time, points
     planet_client = TrackPlanet(lat=latitude, lon=longitude, planet=planet)
     planet_views = planet_client.get_view(time_start=initial_time, time_stop=end_time, points=points)
     filtered_view = filter_for_elevation(planet_views, angle)
-    print(*filtered_view, sep="\n")
+    print_views(filtered_view)
 
 
 @click.command('track_sat', short_help="Function to track a satellite path relative to provided location.")
@@ -70,7 +74,7 @@ def get_sat_track(norad_id, latitude, longitude, initial_time, end_time, points,
     sat_client = TrackSatellite(lat=latitude, lon=longitude, url=True, id=norad_id)
     sat_views = sat_client.get_view(time_start=initial_time, time_stop=end_time, points=points)
     filtered_view = filter_for_elevation(sat_views, min_angle=angle)
-    print(*filtered_view, sep="\n")
+    print_views(filtered_view)
 
 
 @click.command('track_voyager', short_help="Function to track the Voyager 1 space probe.")
@@ -95,7 +99,7 @@ def get_voyager_track(latitude, longitude, initial_time, end_time, points, angle
     voyager_client = TrackBodyT01(lat=latitude, lon=longitude)
     voyager_view = voyager_client.get_view(time_start=initial_time, time_stop=end_time, points=points)
     filtered_view = filter_for_elevation(views=voyager_view, min_angle=angle)
-    print(*filtered_view, sep="\n")
+    print_views(filtered_view)
 
 
 @click.command('track_asteroid', short_help="Function to track the orbit of the Didymos asteroid.")
@@ -120,7 +124,7 @@ def get_asteroid_track(latitude, longitude, initial_time, end_time, points, angl
     asteroid_client = TrackBodyT21(lat=latitude, lon=longitude)
     asteroid_view = asteroid_client.get_view(time_start=initial_time, time_stop=end_time, points=points)
     filtered_view = filter_for_elevation(views=asteroid_view, min_angle=angle)
-    print(*filtered_view, sep="\n")
+    print_views(filtered_view)
 
 
 def filter_for_elevation(views, min_angle):
