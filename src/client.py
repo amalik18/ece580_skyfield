@@ -3,128 +3,79 @@ from datetime import datetime
 from skyfield.constants import AU_KM
 from skyfield.vectorlib import VectorFunction
 from spktype01 import SPKType01
+from spktype21 import SPKType21
+
 
 class TrackPlanet:
     def __init__(self, lat=0.0, lon=0.0, planet=None):
-        self.ts = load.timescale()        
-        self.sat = None
-        self.eph = load('de421.bsp')
+        self.ts = load.timescale()
+        self.eph = load('data/de421.bsp')
         self.earth = self.eph['earth']
-        self.set_loc(lat, lon)
-        if planet != None:
-            self.set_planet(planet)
-
-    def set_planet(self, name):
-        self.planet = self.eph[name]
-
-    def set_loc(self, lat, lon):
-        if isinstance(lat, float) and isinstance(lon, float):
-            self.lat = lat
-            self.lon = lon
-            self.loc = self.earth+wgs84.latlon(float(lat),float(lon))
-        else:
-            raise ValueError('Lat and Lon must be floats')
+        self.planet = None
+        if planet is not None:
+            self.planet = self.eph[planet]
+        self.lon = lon
+        self.lat = lat
+        self.loc = self.earth + wgs84.latlon(latitude_degrees=lat, longitude_degrees=lon)
+        self.sat = None
 
     def get_view(self, time_start, time_stop=None, points=100):
-        if isinstance(time_start, datetime):    
+        if isinstance(time_start, datetime):
             t1 = self.ts.from_datetime(time_start)
         else:
             raise ValueError('Time must be datetime.datetime object')
-        if time_stop != None:
-            if isinstance(time_stop, datetime):    
+        if time_stop is not None:
+            if isinstance(time_stop, datetime):
                 t2 = self.ts.from_datetime(time_stop)
             else:
                 raise ValueError('Time must be datetime.datetime object')
-            
+
             ret_list = []
             times = self.ts.linspace(t1, t2, points)
             for t in times:
                 difference = self.planet - self.loc
                 topocentric = difference.at(t)
                 alt, az, distance = topocentric.altaz()
-                ret_list.append({'time':t, 'alt':alt, 'az':az, 'distance':distance})
+                ret_list.append({'time': t, 'alt': alt, 'az': az, 'distance': distance})
             return ret_list
         else:
             difference = self.planet - self.loc
             topocentric = difference.at(t1)
-            
-            alt, az, distance = topocentric.altaz()
-            return {'time':t1, 'alt':alt, 'az':az, 'distance':distance}
-    def filter_for_elevation(self, views, min_angle):
-        o=[]
-        for v in views:
-            if v['alt'].degrees >= min_angle:
-                o.append(v)
-        return o
 
+            alt, az, distance = topocentric.altaz()
+            return {'time': t1, 'alt': alt, 'az': az, 'distance': distance}
 
 
 class TrackSatellite:
-    def __init__(self, lat=0.0, lon=0.0, tle=None):
+    def __init__(self, lat=0.0, lon=0.0, tle=None, url=False, id=None):
+        self.lon = lon
+        self.lat = lat
+        self.loc = wgs84.latlon(latitude_degrees=lat, longitude_degrees=lon)
         self.ts = load.timescale()
-        self.set_loc(lat, lon)
-        if tle != None:
-            self.load_tle(tle)
-        else:
-            self.sat = None
 
-    def load_tle(self, tle, name='satellite'):
-        
-        if isinstance(tle, list) and len(tle) == 2:
-            self.sat = EarthSatellite(tle[0], tle[1], name, self.ts)
-        else:
-            raise ValueError('TLE data must be a list of two strings')
-
-    def set_loc(self, lat, lon):
-        if isinstance(lat, float) and isinstance(lon, float):
-            self.lat = lat
-            self.lon = lon
-            self.loc = wgs84.latlon(float(lat),float(lon))
-        else:
-            raise ValueError('Lat and Lon must be floats')
+        url_link = f'https://celestrak.com/satcat/tle.php?CATNR={id}'
+        filename = f'data/tle-CANTR-{id}.txt'
+        self.sat = load.tle_file(url=url_link, filename=filename, reload=True)[0]
 
     def get_view(self, time_start, time_stop=None, points=100):
-        if isinstance(time_start, datetime):    
-            t1 = self.ts.from_datetime(time_start)
-        else:
-            raise ValueError('Time must be datetime.datetime object')
-        if time_stop != None:
-            if isinstance(time_stop, datetime):    
-                t2 = self.ts.from_datetime(time_stop)
-            else:
-                raise ValueError('Time must be datetime.datetime object')
-            
+        t1 = self.ts.from_datetime(datetime=time_start)
+
+        if time_stop is not None:
+            t2 = self.ts.from_datetime(datetime=time_stop)
             ret_list = []
-            times = self.ts.linspace(t1, t2, count)
+            times = self.ts.linspace(t0=t1, t1=t2, num=points)
             for t in times:
                 difference = self.sat - self.loc
-                topocentric = difference.at(t)
+                topocentric = difference.at(t=t)
                 alt, az, distance = topocentric.altaz()
-                ret_list.append({'time':t, 'alt':alt, 'az':az, 'distance':distance})
+                ret_list.append({'time': t, 'alt': alt, 'az': az, 'distance': distance})
             return ret_list
         else:
             difference = self.sat - self.loc
-            topocentric = difference.at(t1)
-            
+            topocentric = difference.at(t=t1)
+
             alt, az, distance = topocentric.altaz()
-            return {'time':t1, 'alt':alt, 'az':az, 'distance':distance}
-    def filter_for_elevation(self, views, min_angle):
-        o=[]
-        for v in views:
-            if v['alt'].degrees >= min_angle:
-                o.append(v)
-        return o
-
-class Type21Object(VectorFunction):
-    def __init__(self, kernel, target):
-        self.kernel = kernel
-        self.center = 0
-        self.target = target
-
-    def _at(self, t):
-        k = self.kernel
-        r, v = k.compute_type21(0, self.target, t.whole, t.tdb_fraction)
-        return r / AU_KM, v / AU_KM, None, None
+            return {'time': t1, 'alt': alt, 'az': az, 'distance': distance}
 
 
 class EphemeralClass(VectorFunction):
@@ -136,135 +87,75 @@ class EphemeralClass(VectorFunction):
             self.center = 10
         else:
             self.center = 0
-    
+
     def _at(self, t):
-        k = self.kernel
         if self.center == 10:
-            r, v = k.compute_type01(0, self.target, t.whole, t.tdb_function)
+            r, v = self.kernel.compute_type01(self.center, self.target, t.whole, t.tdb_fraction)
         else:
-            r, v = k.compute_type21(0, self.target, t.whole, t.tdb_function)
-        
-        return r / AU_KM, v / AU_KM, None, None
-        
-    
+            r, v = self.kernel.compute_type21(0, self.target, t.whole, t.tdb_fraction)
 
-class Type01Object(VectorFunction):
-    def __init__(self, kernel, target):
-        self.kernel = kernel
-        self.center = 10
-        self.target = target
-
-    def _at(self, t):
-        k = self.kernel
-        print(t)
-        r, v = k.compute_type01(self.center, self.target, t.whole, t.tdb_fraction)
         return r / AU_KM, v / AU_KM, None, None
 
-class TrackBody:
+
+class TrackBodyT21:
     def __init__(self, lat=0.0, lon=0.0):
-        self.ts = load.timescale()        
-        self.sat = None
-        self.eph = load('de421.bsp')
+        self.lat = lat
+        self.lon = lon
+        self.ts = load.timescale()
+        self.eph = load('data/de421.bsp')
         self.earth = self.eph['earth']
-        kernel = SPKType21.open('2065803.bsp')
-        self.body_eph = Type21Object(kernel, 2065803)
-        self.set_loc(lat, lon)
-        self.set_body()
+        kernel = SPKType21.open('data/2065803.bsp')
+        self.body_eph = EphemeralClass(kernel=kernel, target=2065803, type_obj="type21")
 
-    def set_body(self):
-        self.body = self.body_eph
-
-    def set_loc(self, lat, lon):
-        if isinstance(lat, float) and isinstance(lon, float):
-            self.lat = lat
-            self.lon = lon
-            self.loc = self.earth+wgs84.latlon(float(lat),float(lon))
-        else:
-            raise ValueError('Lat and Lon must be floats')
+        self.loc = self.earth + wgs84.latlon(latitude_degrees=lat, longitude_degrees=lon)
+        self.sat = None
 
     def get_view(self, time_start, time_stop=None, points=100):
-        if isinstance(time_start, datetime):    
-            t1 = self.ts.from_datetime(time_start)
-        else:
-            raise ValueError('Time must be datetime.datetime object')
-        if time_stop != None:
-            if isinstance(time_stop, datetime):    
-                t2 = self.ts.from_datetime(time_stop)
-            else:
-                raise ValueError('Time must be datetime.datetime object')
-            
+        t1 = self.ts.from_datetime(datetime=time_start)
+        if time_stop is not None:
+            t2 = self.ts.from_datetime(datetime=time_stop)
             ret_list = []
-            times = self.ts.linspace(t1, t2, count)
+            times = self.ts.linspace(t0=t1, t1=t2, num=points)
             for t in times:
-                topocentric = self.body.at(t) - self.loc.at(t)
+                topocentric = self.body_eph.at(t=t) - self.loc.at(t=t)
                 alt, az, distance = topocentric.altaz()
-                ret_list.append({'time':t, 'alt':alt, 'az':az, 'distance':distance})
+                ret_list.append({'time': t, 'alt': alt, 'az': az, 'distance': distance})
             return ret_list
         else:
-            difference = self.body - self.loc
-            topocentric = difference.at(t1)
-            
+            difference = self.body_eph - self.loc
+            topocentric = difference.at(t=t1)
+
             alt, az, distance = topocentric.altaz()
-            return {'time':t1, 'alt':alt, 'az':az, 'distance':distance}
-    def filter_for_elevation(self, views, min_angle):
-        o=[]
-        for v in views:
-            if v['alt'].degrees >= min_angle:
-                o.append(v)
-        return o
+            return {'time': t1, 'alt': alt, 'az': az, 'distance': distance}
 
 
-class TrackBody:
+class TrackBodyT01:
     def __init__(self, lat=0.0, lon=0.0):
-        self.ts = load.timescale()        
-        self.sat = None
-        self.eph = load('de421.bsp')
+        self.lat = lat
+        self.lon = lon
+        self.ts = load.timescale()
+        self.eph = load('data/de421.bsp')
         self.earth = self.eph['earth']
         self.sun = self.eph['sun']
-        kernel = SPKType01.open('Voyager_1.a54206u_V0.2_merged.bsp')
-        print(kernel)
-        self.body_eph = Type01Object(kernel, -31)
-        self.set_loc(lat, lon)
-        self.set_body()
-
-    def set_body(self):
-        self.body = self.body_eph
-
-    def set_loc(self, lat, lon):
-        if isinstance(lat, float) and isinstance(lon, float):
-            self.lat = lat
-            self.lon = lon
-            self.loc = self.earth+wgs84.latlon(float(lat),float(lon))
-        else:
-            raise ValueError('Lat and Lon must be floats')
+        kernel = SPKType01.open('data/Voyager_1.a54206u_V0.2_merged.bsp')
+        self.body_eph = EphemeralClass(kernel=kernel, target=-31, type_obj="type01")
+        self.sat = None
+        self.loc = self.earth + wgs84.latlon(latitude_degrees=self.lat, longitude_degrees=self.lon)
 
     def get_view(self, time_start, time_stop=None, points=100):
-        if isinstance(time_start, datetime):    
-            t1 = self.ts.from_datetime(time_start)
-        else:
-            raise ValueError('Time must be datetime.datetime object')
-        if time_stop != None:
-            if isinstance(time_stop, datetime):    
-                t2 = self.ts.from_datetime(time_stop)
-            else:
-                raise ValueError('Time must be datetime.datetime object')
-            
+        t1 = self.ts.from_datetime(datetime=time_start)
+        if time_stop is not None:
+            t2 = self.ts.from_datetime(datetime=time_stop)
             ret_list = []
-            times = self.ts.linspace(t1, t2, count)
+            times = self.ts.linspace(t1, t2, points)
             for t in times:
-                topocentric = self.body.at(t) - self.loc.at(t)
+                topocentric = self.body_eph.at(t) - self.loc.at(t)
                 alt, az, distance = topocentric.altaz()
-                ret_list.append({'time':t, 'alt':alt, 'az':az, 'distance':distance})
+                ret_list.append({'time': t, 'alt': alt, 'az': az, 'distance': distance})
             return ret_list
         else:
-            difference = self.body - self.loc
+            difference = self.body_eph - self.loc
             topocentric = difference.at(t1)
-            
+
             alt, az, distance = topocentric.altaz()
-            return {'time':t1, 'alt':alt, 'az':az, 'distance':distance}
-    def filter_for_elevation(self, views, min_angle):
-        o=[]
-        for v in views:
-            if v['alt'].degrees >= min_angle:
-                o.append(v)
-        return o
+            return {'time': t1, 'alt': alt, 'az': az, 'distance': distance}
