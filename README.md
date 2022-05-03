@@ -4,6 +4,15 @@ to track planets, satellites, and other celestial bodies. This work aims to prov
 George Mason University's satellite research division by providing the Time, Altitude, Azimuth, and the Distance
 of each body.
 
+# Setup
+To get started using this library you need to ensure that Python3.5+ is installe don the host system. Additionally, to install the Skyfield Python package, as well as, the two packages that deal with the differing types of ephemeris data. 
+
+```bash
+$ python -m pip install skyfield spktype01 spktype21
+```
+
+The command up above will downlaod all necessary dependencies for this library to work properly. 
+
 # Usage
 This library is created as a CLI tool, that can be invoked with inputs. Below are examples of using this library
 as a CLI to determine certain calculations. Below are the supported commands which can be accessed by running 
