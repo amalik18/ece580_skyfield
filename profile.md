@@ -1,6 +1,5 @@
-
-
 `cProfile` run for the `track_sat` command, with the Top 10 most called functions
+
 ```bash
          500487 function calls (486762 primitive calls) in 6.843 seconds
 
@@ -19,8 +18,10 @@
     10001    0.054    0.000    0.054    0.000 {built-in method numpy.core._multiarray_umath.c_einsum}
  ```
 
+---
 
 `cProfile` run for the `track_planet` command, with the Top 10 most called functions
+
 ```bash
          551110 function calls (537214 primitive calls) in 4.073 seconds
 
@@ -39,7 +40,10 @@
     10000    0.001    0.000    0.001    0.000 multiarray.py:736(dot)
 ```
 
+---
+
 `cProfile` run for the `track_asteroid` command with the Top 10 most called functions
+
 ```bash
         518957 function calls (506244 primitive calls) in 2.389 seconds
 
@@ -58,7 +62,10 @@
     10000    0.006    0.000    0.024    0.000 <__array_function__ internals>:177(dot)
 ```
 
+---
+
 `cProfile` run for the `track_voyager` command with the Top 10 most called function
+
 ```bash
          526292 function calls (513120 primitive calls) in 1.344 seconds
 
